@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Lip Reading Dataset</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        .result {
+            padding: 0;
+            margin-top: 20px;
+        }
+        .result-item {
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            background-color: #f9f9f9;
+            display: flex;  /* Use flexbox to align video and text */
+            align-items: center;  /* Align items vertically */
+        }
+        .result-video {
+            width: 150px;  /* Set video width */
+            height: auto;  /* Maintain aspect ratio */
+            margin-right: 20px;  /* Space between video and text */
+        }
+    </style>
+    <script>
+        function isAlphabet(str) {
+            return /^[a-zA-Z]+$/.test(str);
+        }
+
+        function isNumeric(str) {
+            return /^[0-9]*\.?[0-9]{0,3}$/.test(str);
+        }
+
+        function showError(message) {
+            const errorElement = document.getElementById("error_message");
+            errorElement.textContent = message;
+            errorElement.style.display = "block";
+        }
+
+        function clearError() {
+            const errorElement = document.getElementById("error_message");
+            errorElement.textContent = "";
+            errorElement.style.display = "none";
+        }
+
+        function searchTextForWord() {
+            const word = document.getElementById("word").value;
+            const durationStart = document.getElementById("duration_start").value;
+            const durationEnd = document.getElementById("duration_end").value;
+            const homophone = document.getElementById("homophone").value;
+
+            // Validate inputs
+            if (word && !isAlphabet(word)) {
+                showError("Word must contain only alphabets.");
+                return;
+            }
+
+            if (homophone && !isAlphabet(homophone)) {
+                showError("Homophone must contain only alphabets.");
+                return;
+            }
+
+            if (durationStart && !isNumeric(durationStart)) {
+                showError("Duration Start must be a number with up to 3 decimal places.");
+                return;
+            }
+
+            if (durationEnd && !isNumeric(durationEnd)) {
+                showError("Duration End must be a number with up to 3 decimal places.");
+                return;
+            }
+
+            // Build the API URL with query parameters
+            let apiUrl = "http://127.0.0.1:8000/lipReadingData/text_for_word/?";
+            const queryParams = [];
+
+            if (word) {
+                queryParams.push(`word=${word}`);
+            }
+
+            if (durationStart) {
+                queryParams.push(`duration_start=${durationStart}`);
+            }
+
+            if (durationEnd) {
+                queryParams.push(`duration_end=${durationEnd}`);
+            }
+
+            if (homophone) {
+                queryParams.push(`homophone=${homophone}`);
+            }
+
+            apiUrl += queryParams.join("&");
+
+            // Fetch data and handle response
+            fetch(apiUrl)
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(data => {
+                            throw new Error(data.error);
+                        });
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    const resultList = document.getElementById("result_list");
+                    resultList.innerHTML = "";  /* Clear previous results */
+
+                    if (data.length === 0) {
+                        showError("No Text found for the specified parameters.");
+                        return;
+                    }
+
+                    data.forEach(item => {
+                        const li = document.createElement("li");
+                        li.className = "result-item";  /* Use flexbox */
+                        li.innerHTML = `
+                            <video class="result-video" controls>
+                                <source src="${item.video_url}" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                            <div>
+                                <strong>Text:</strong> ${item.text}<br>
+                                <strong>Video Duration:</strong> ${item.video_duration}
+                            </div>
+                        `;
+                        resultList.appendChild(li);
+                    });
+
+                    clearError();  /* Clear any previous error messages */
+                })
+                .catch(error => {
+                    showError(error.message);
+                });
+        }
+    </script>
+</head>
+<body>
+    <div class="container">
+        <h1 class="mt-4">Lip Reading Dataset</h1>
+        <h2>Search Text for Word</h2>
+        
+        <div class="alert alert-danger" id="error_message" style="display: none;"></div> 
+        
+        <div class="form-group">
+            <label for="word">Word:</label>
+            <input type="text" id="word" name="word" class="form-control" placeholder="Enter a word">
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group col-md-6">
+                <label for="duration_start">Duration Start:</label>
+                <input type="text" id="duration_start" name="duration_start" class="form-control" placeholder="0.00">
+            </div>
+            <div class="form-group col-md-6">
+                <label for="duration_end">Duration End:</label>
+                <input type="text" id="duration_end" name="duration_end" class="form-control" placeholder="0.00">
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label for="homophone">Homophone:</label>
+            <input type="text" id="homophone" name="homophone" class="form-control" placeholder="Enter a homophone word">
+        </div>
+        
+        <button class="btn btn-primary" onclick="searchTextForWord()">Search</button>
+        
+        <h2 class="mt-4">Results:</h2>
+        <ul id="result_list" class="result">
+            <!-- Results will be inserted here -->
+        </ul>
+    </div>
+    
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>
