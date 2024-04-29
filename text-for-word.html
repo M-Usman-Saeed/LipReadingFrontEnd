@@ -15,13 +15,13 @@
             border-radius: 5px;
             margin-bottom: 10px;
             background-color: #f9f9f9;
-            display: flex;  /* Use flexbox to align video and text */
-            align-items: center;  /* Align items vertically */
+            display: flex; /* Flexbox layout */
+            align-items: center; /* Align vertically */
         }
         .result-video {
-            width: 150px;  /* Set video width */
-            height: auto;  /* Maintain aspect ratio */
-            margin-right: 20px;  /* Space between video and text */
+            width: 150px; /* Video width */
+            height: auto; /* Maintain aspect ratio */
+            margin-right: 20px; /* Spacing between video and text */
         }
     </style>
     <script>
@@ -33,23 +33,12 @@
             return /^[0-9]*\.?[0-9]{0,3}$/.test(str);
         }
 
-        function showError(message) {
-            const errorElement = document.getElementById("error_message");
-            errorElement.textContent = message;
-            errorElement.style.display = "block";
-        }
-
-        function clearError() {
-            const errorElement = document.getElementById("error_message");
-            errorElement.textContent = "";
-            errorElement.style.display = "none";
-        }
-
         function searchTextForWord() {
             const word = document.getElementById("word").value;
             const durationStart = document.getElementById("duration_start").value;
             const durationEnd = document.getElementById("duration_end").value;
             const homophone = document.getElementById("homophone").value;
+            const sentiment = document.querySelector('input[name="sentiment"]:checked').value;
 
             // Validate inputs
             if (word && !isAlphabet(word)) {
@@ -72,7 +61,6 @@
                 return;
             }
 
-            // Build the API URL with query parameters
             let apiUrl = "http://127.0.0.1:8000/lipReadingData/text_for_word/?";
             const queryParams = [];
 
@@ -92,9 +80,20 @@
                 queryParams.push(`homophone=${homophone}`);
             }
 
+            // Sentiment handling
+            if (sentiment === "positive") {
+                queryParams.push("positive=1");
+                queryParams.push("negative=0");
+            } else if (sentiment === "negative") {
+                queryParams.push("positive=0");
+                queryParams.push("negative=1");
+            } else {
+                queryParams.push();
+                queryParams.push();
+            }
+
             apiUrl += queryParams.join("&");
 
-            // Fetch data and handle response
             fetch(apiUrl)
                 .then(response => {
                     if (!response.ok) {
@@ -106,7 +105,7 @@
                 })
                 .then(data => {
                     const resultList = document.getElementById("result_list");
-                    resultList.innerHTML = "";  /* Clear previous results */
+                    resultList.innerHTML = "";  // Clear previous results
 
                     if (data.length === 0) {
                         showError("No Text found for the specified parameters.");
@@ -115,7 +114,7 @@
 
                     data.forEach(item => {
                         const li = document.createElement("li");
-                        li.className = "result-item";  /* Use flexbox */
+                        li.className = "result-item";  // Assign class for styling
                         li.innerHTML = `
                             <video class="result-video" controls>
                                 <source src="${item.video_url}" type="video/mp4">
@@ -123,17 +122,29 @@
                             </video>
                             <div>
                                 <strong>Text:</strong> ${item.text}<br>
-                                <strong>Video Duration:</strong> ${item.video_duration}
+                                <strong>Video Duration:</strong> ${item.video_duration}<br>
                             </div>
                         `;
                         resultList.appendChild(li);
                     });
 
-                    clearError();  /* Clear any previous error messages */
+                    clearError();  // Clear any previous error messages
                 })
                 .catch(error => {
                     showError(error.message);
                 });
+        }
+
+        function showError(message) {
+            const errorElement = document.getElementById("error_message");
+            errorElement.textContent = message;
+            errorElement.style.display = "block";
+        }
+
+        function clearError() {
+            const errorElement = document.getElementById("error_message");
+            errorElement.textContent = "";
+            errorElement.style.display = "none";
         }
     </script>
 </head>
@@ -142,8 +153,8 @@
         <h1 class="mt-4">Lip Reading Dataset</h1>
         <h2>Search Text for Word</h2>
         
-        <div class="alert alert-danger" id="error_message" style="display: none;"></div> 
-        
+        <div class="alert alert-danger" id="error_message" style="display: none;"></div>  <!-- Error display -->
+
         <div class="form-group">
             <label for="word">Word:</label>
             <input type="text" id="word" name="word" class="form-control" placeholder="Enter a word">
@@ -151,11 +162,11 @@
         
         <div class="form-row">
             <div class="form-group col-md-6">
-                <label for="duration_start">Duration Start:</label>
+                <label for "duration_start">Duration Start:</label>
                 <input type="text" id="duration_start" name="duration_start" class="form-control" placeholder="0.00">
             </div>
             <div class="form-group col-md-6">
-                <label for="duration_end">Duration End:</label>
+                <label for "duration_end">Duration End:</label>
                 <input type="text" id="duration_end" name="duration_end" class="form-control" placeholder="0.00">
             </div>
         </div>
@@ -163,6 +174,24 @@
         <div class="form-group">
             <label for="homophone">Homophone:</label>
             <input type="text" id="homophone" name="homophone" class="form-control" placeholder="Enter a homophone word">
+        </div>
+        
+        <div class="form-group">
+            <label>Sentiment:</label>
+            <div>
+                <div class="form-check form-check-inline">
+                    <input type="radio" id="neutral" name="sentiment" value="neutral" class="form-check-input" checked>
+                    <label for="neutral" class="form-check-label">Neutral</label>
+                </div>
+                <div class="form-check form-check-inline">
+                    <input type="radio" id="positive" name="sentiment" value="positive" class="form-check-input">
+                    <label for="positive" class="form-check-label">Positive</label>
+                </div>
+                <div class="form-check form-check-inline">
+                    <input type="radio" id="negative" name="sentiment" value="negative" class="form-check-input">
+                    <label for="negative" class="form-check-label">Negative</label>
+                </div>
+            </div>
         </div>
         
         <button class="btn btn-primary" onclick="searchTextForWord()">Search</button>
@@ -173,6 +202,7 @@
         </ul>
     </div>
     
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <!-- Load Bootstrap JavaScript -->
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>  <!-- Bootstrap JS -->
 </body>
 </html>
