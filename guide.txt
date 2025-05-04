@@ -1,0 +1,4 @@
+Running Server
+    1. go to project directory and run this command in CLI
+        http-server
+
